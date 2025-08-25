@@ -2,8 +2,6 @@ import AppError from "../../errors/AppError";
 import Test from "./test.model";
 import httpStatus from "http-status";
 
-
-
 const getTests = async () => {
   //   if you are using a database, you would typically query the database here
   // For example, if using Mongoose: return Test.find();

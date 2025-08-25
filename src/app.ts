@@ -1,4 +1,5 @@
 import express, { Application, Request, Response } from "express";
+import path from "path";
 import cors from "cors";
 import config from "./app/config";
 import router from "./app/routes";
@@ -17,6 +18,9 @@ app.use(
 
 // router setup
 app.use("/api/v1", router);
+
+// serve uploaded files
+app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 
 app.get("/", (req: Request, res: Response) => {
   res.send(`Server Running on port ${config.port}`);
