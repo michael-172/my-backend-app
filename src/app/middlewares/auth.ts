@@ -40,7 +40,12 @@ export const authMiddleware = async (
   }
 
   if (!token) {
-    return next(new AppError(https.UNAUTHORIZED, "Not authorized"));
+    return next(
+      new AppError(
+        https.UNAUTHORIZED,
+        "You are not authenticated, please log in first"
+      )
+    );
   }
 
   const secret = JWT_SECRET.JWT_SECRET;
