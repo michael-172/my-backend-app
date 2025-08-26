@@ -1,18 +1,13 @@
 import { Router } from "express";
-import { ProductController } from "./product.controller";
-import { authMiddleware, authorize } from "../../middlewares/auth";
 import {
   createMulter,
-  mapFilesToBody,
   mapProductAndVariantImages,
   parseMultipartFormFields,
-} from "../../middlewares/upload";
+} from "../../../middlewares/upload";
+import { ProductAdminController } from "./product.controller";
 
 const router = Router();
 
-// User Routes
-
-// Admin Routes
 const upload = createMulter({
   subdir: "products",
   accept: "images",
@@ -20,10 +15,7 @@ const upload = createMulter({
 });
 
 router.post(
-  "/admin/create",
-  authMiddleware,
-  authorize("admin"),
-  // Accept product-level images (field: images) and variant images (fields: variants[n][image])
+  "/create",
   upload.any(),
   parseMultipartFormFields(),
   mapProductAndVariantImages({
@@ -31,7 +23,10 @@ router.post(
     variantsKey: "variants",
     imageSubKey: "image",
   }),
-  ProductController.createProduct
+  ProductAdminController.create
 );
 
-export const ProductRouter = router;
+router.get("/", ProductAdminController.getAll);
+router.delete("/:id", ProductAdminController.delete);
+
+export const ProductAdminRouter = router;

@@ -1,0 +1,3 @@
+interface Review {
+  rating: number;
+}
