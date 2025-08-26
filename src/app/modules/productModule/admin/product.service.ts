@@ -41,7 +41,6 @@ export const getAllProductsService = async (reqQuery: {
   sortBy?: string;
 }) => {
   // 1. Pagination
-  console.log(reqQuery);
   const page = Number(reqQuery.page) || 1;
   const limit = Number(reqQuery.limit) || 10;
   const skip = (page - 1) * limit;
@@ -122,7 +121,6 @@ export const getAllProductsService = async (reqQuery: {
 
   const data = products.map((p: IProduct) => {
     const ratings = p.reviews?.map((r) => r.rating) ?? [];
-    console.log(ratings);
     const rating_average =
       ratings.length > 0
         ? Number(

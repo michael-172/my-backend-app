@@ -1,8 +1,6 @@
 import express from "express";
-import { TestRoutes } from "../modules/testModule/test.route";
 import { AuthRouter } from "../modules/authModule/auth.route";
-import { UserRouter } from "../modules/usersModule/users.route";
-import { ProductAdminController } from "../modules/productModule/admin/product.controller";
+import { userAdminRouter } from "../modules/userModule/admin/users.route";
 import { ProductRouter } from "../modules/productModule/user/product.route";
 import { ProductAdminRouter } from "../modules/productModule/admin/product.route";
 import { authMiddleware, authorize } from "../middlewares/auth";
@@ -13,31 +11,42 @@ const moduleRoutes = [
   {
     path: "/auth",
     route: AuthRouter,
-  },
-  {
-    path: "/users",
-    route: UserRouter,
+    isAuth: false,
+    isAuthorizable: false,
   },
   {
     path: "/products",
     route: ProductRouter,
+    isAuth: false,
+    isAuthorizable: false,
   },
+];
+
+const adminRoutes = [
   //Admin Routes
   {
-    path: "/admins/products",
+    path: "/products",
     route: ProductAdminRouter,
-    isAuth: true,
-    isAuthorizable: true,
+  },
+  {
+    path: "/users",
+    route: userAdminRouter,
   },
 ];
 
 moduleRoutes.forEach((route) =>
   router.use(
     route.path,
-
-    // if isAuth, apply authMiddleware
     route.isAuth ? authMiddleware : (req, res, next) => next(),
-    route.isAuthorizable ? authorize("admin") : (req, res, next) => next(),
+    route.isAuthorizable ? authorize("user") : (req, res, next) => next(),
+    route.route
+  )
+);
+adminRoutes.forEach((route) =>
+  router.use(
+    `/admins${route.path}`,
+    authMiddleware,
+    authorize("admin"),
     route.route
   )
 );

@@ -1,8 +1,8 @@
-import AppError from "../../errors/AppError";
+import AppError from "../../../errors/AppError";
 import httpStatus from "http-status";
 import { LoginPayload, SignUpPayload } from "./users.interface";
 import bcrypt from "bcrypt";
-import prisma from "../../utils/prisma";
+import prisma from "../../../utils/prisma";
 import { v4 as uuidv4 } from "uuid";
 
 export const getAllUsers = async () => {

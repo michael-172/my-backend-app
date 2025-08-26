@@ -15,7 +15,7 @@ const upload = createMulter({
 });
 
 router.post(
-  "/create",
+  "/",
   upload.any(),
   parseMultipartFormFields(),
   mapProductAndVariantImages({

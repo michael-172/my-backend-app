@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 
-import catchAsync from "../../utils/asyncCatch";
-import sendResponse from "../../utils/sendResponse";
+import catchAsync from "../../../utils/asyncCatch";
+import sendResponse from "../../../utils/sendResponse";
 import httpStatus from "http-status";
 import { UsersService } from "./users.service";
 
@@ -16,6 +16,6 @@ const getAllUsers = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-export const UserController = {
-  getAllUsers,
+export const UserAdminController = {
+  getAll: getAllUsers,
 };
