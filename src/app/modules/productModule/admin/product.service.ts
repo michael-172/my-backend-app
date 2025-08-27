@@ -2,6 +2,7 @@ import AppError from "../../../errors/AppError";
 import prisma from "../../../utils/prisma";
 import { buildSearchFilter } from "../../../utils/search";
 import https from "http-status";
+import env from "../../../config";
 
 const sortOptions = ["A-Z", "Z-A", "low-to-high", "high-to-low"];
 export const createProduct = async (productData: CreateProductPayload) => {
@@ -41,111 +42,118 @@ export const getAllProductsService = async (reqQuery: {
   search?: string;
   sortBy?: string;
 }) => {
-  // 1. Pagination
-  const page = Number(reqQuery.page) || 1;
-  const limit = Number(reqQuery.limit) || 10;
-  const skip = (page - 1) * limit;
+  try {
+    // 1. Pagination
+    const page = Number(reqQuery.page) || 1;
+    const limit = Number(reqQuery.limit) || 10;
+    const skip = (page - 1) * limit;
 
-  // 2. Filters
-  const where: any = {};
-  if (reqQuery.categoryId) {
-    const ids = Array.isArray(reqQuery.categoryId)
-      ? reqQuery.categoryId
-      : [reqQuery.categoryId];
-    where.categoryId = { in: ids };
-  }
-  if (reqQuery.minPrice && reqQuery.maxPrice) {
-    where.price = {
-      gte: +reqQuery.minPrice,
-      lte: +reqQuery.maxPrice,
-    };
-  }
-  if (reqQuery.search) {
-    const searchableFields = [
-      "name",
-      "description",
-      "sku",
-      // "price",
-      // "priceAfterDiscount",
-    ];
-    const searchFilter = buildSearchFilter(searchableFields, reqQuery.search);
-    if (searchFilter.OR) {
-      where.OR = searchFilter.OR;
+    // 2. Filters
+    const where: any = {};
+    if (reqQuery.categoryId) {
+      const ids = Array.isArray(reqQuery.categoryId)
+        ? reqQuery.categoryId
+        : [reqQuery.categoryId];
+      where.categoryId = { in: ids };
     }
-  }
+    if (reqQuery.minPrice && reqQuery.maxPrice) {
+      where.price = {
+        gte: +reqQuery.minPrice,
+        lte: +reqQuery.maxPrice,
+      };
+    }
+    if (reqQuery.search) {
+      const searchableFields = [
+        "name",
+        "description",
+        "sku",
+        // "price",
+        // "priceAfterDiscount",
+      ];
+      const searchFilter = buildSearchFilter(searchableFields, reqQuery.search);
+      if (searchFilter.OR) {
+        where.OR = searchFilter.OR;
+      }
+    }
 
-  // 3. Sort
-  let orderBy: any = { createdAt: "desc" };
-  switch (reqQuery.sortBy) {
-    case "A-Z":
-      orderBy = { name: "asc" };
-      break;
-    case "Z-A":
-      orderBy = { name: "desc" };
-      break;
-    case "low-to-high":
-      orderBy = { price: "asc" };
-      break;
-    case "high-to-low":
-      orderBy = { price: "desc" };
-      break;
-    default:
-      // keep default createdAt desc
-      break;
-  }
+    // 3. Sort
+    let orderBy: any = { createdAt: "desc" };
+    switch (reqQuery.sortBy) {
+      case "A-Z":
+        orderBy = { name: "asc" };
+        break;
+      case "Z-A":
+        orderBy = { name: "desc" };
+        break;
+      case "low-to-high":
+        orderBy = { price: "asc" };
+        break;
+      case "high-to-low":
+        orderBy = { price: "desc" };
+        break;
+      default:
+        // keep default createdAt desc
+        break;
+    }
 
-  // 4. Query with reviews for rating_average
-  const [products, total] = await prisma.$transaction([
-    prisma.product.findMany({
-      where,
-      select: {
-        id: true,
-        name: true,
-        price: true,
-        average_ratings: true,
-        priceAfterDiscount: true,
-        images: true,
-        status: true,
-        variants: true,
-        categoryId: true,
-        sku: true,
-        createdAt: true,
-        updatedAt: true,
-        reviews: true,
+    // 4. Query with reviews for rating_average
+    const [products, total] = await prisma.$transaction([
+      prisma.product.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          average_ratings: true,
+          priceAfterDiscount: true,
+          images: true,
+          status: true,
+          variants: true,
+          categoryId: true,
+          sku: true,
+          createdAt: true,
+          updatedAt: true,
+          reviews: true,
+        },
+        orderBy,
+        skip,
+        take: limit,
+      }),
+      prisma.product.count({ where }),
+    ]);
+    if (!products.length) {
+      return Promise.reject(new AppError(https.NOT_FOUND, "No products found"));
+    }
+
+    const data = products.map((p: IProduct) => {
+      const ratings = p.reviews?.map((r) => r.rating) ?? [];
+      const rating_average =
+        ratings.length > 0
+          ? Number(
+              (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(2)
+            )
+          : 0;
+      // map over images and add base url to them
+      // const images = p.images.map((img) => `${env.BASE_URL}/${img}`);
+      const { reviews, ...rest } = p;
+      return { ...rest, rating_average };
+    });
+    return {
+      status: "success",
+      data,
+      pagination: {
+        page,
+        limit,
+        results: data.length,
+        total_pages: Math.ceil(total / limit),
       },
-      orderBy,
-      skip,
-      take: limit,
-    }),
-    prisma.product.count({ where }),
-  ]);
-
-  if (!products.length) {
-    return Promise.reject(new AppError(https.NOT_FOUND, "No products found"));
+    };
+  } catch (error) {
+    throw new AppError(
+      https.INTERNAL_SERVER_ERROR,
+      "Failed to retrieve products"
+    );
   }
-
-  const data = products.map((p: IProduct) => {
-    const ratings = p.reviews?.map((r) => r.rating) ?? [];
-    const rating_average =
-      ratings.length > 0
-        ? Number(
-            (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(2)
-          )
-        : 0;
-    const { reviews, ...rest } = p;
-    return { ...rest, rating_average };
-  });
-
-  return {
-    status: "success",
-    data,
-    pagination: {
-      page,
-      limit,
-      results: data.length,
-      total_pages: Math.ceil(total / limit),
-    },
-  };
 };
 
 export const deleteProductService = async ({ id }: { id: string }) => {

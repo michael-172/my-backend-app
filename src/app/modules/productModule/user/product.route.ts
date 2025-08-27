@@ -1,16 +1,10 @@
 import { Router } from "express";
 import { ProductController } from "./product.controller";
-import { authMiddleware, authorize } from "../../../middlewares/auth";
-import {
-  createMulter,
-  mapFilesToBody,
-  mapProductAndVariantImages,
-  parseMultipartFormFields,
-} from "../../../middlewares/upload";
+import { ProductAdminController } from "../admin/product.controller";
 
 const router = Router();
 
-router.get("/all", ProductController.getAll);
+router.get("/all", ProductAdminController.getAll);
 router.get("/:id", ProductController.getOne);
 router.get("/:id/reviews", ProductController.getReviews);
 
