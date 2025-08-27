@@ -1,6 +1,7 @@
 import AppError from "../../../errors/AppError";
 import prisma from "../../../utils/prisma";
 import { buildSearchFilter } from "../../../utils/search";
+import https from "http-status";
 
 const sortOptions = ["A-Z", "Z-A", "low-to-high", "high-to-low"];
 export const createProduct = async (productData: CreateProductPayload) => {
@@ -118,6 +119,10 @@ export const getAllProductsService = async (reqQuery: {
     }),
     prisma.product.count({ where }),
   ]);
+
+  if (!products.length) {
+    return Promise.reject(new AppError(https.NOT_FOUND, "No products found"));
+  }
 
   const data = products.map((p: IProduct) => {
     const ratings = p.reviews?.map((r) => r.rating) ?? [];

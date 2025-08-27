@@ -63,7 +63,9 @@ export const authMiddleware = async (
     },
   });
   if (!user) {
-    return next(new AppError(https.NOT_FOUND, "User not found"));
+    return next(
+      new AppError(https.UNAUTHORIZED, "User not found, Please Login again")
+    );
   }
 
   req.user = user;

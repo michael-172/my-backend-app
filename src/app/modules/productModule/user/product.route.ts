@@ -10,15 +10,6 @@ import {
 
 const router = Router();
 
-// User Routes
-
-// Admin Routes
-const upload = createMulter({
-  subdir: "products",
-  accept: "images",
-  limits: { fileSize: 5 * 1024 * 1024, files: 10 },
-});
-
 router.get("/all", ProductController.getAll);
 router.get("/:id", ProductController.getOne);
 router.get("/:id/reviews", ProductController.getReviews);

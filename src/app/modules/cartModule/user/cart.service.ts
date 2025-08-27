@@ -104,7 +104,161 @@ export const addToCart = async ({
   }
 };
 
+export const removeItemFromCart = async ({
+  userId,
+  cartItemId,
+}: {
+  userId: string;
+  cartItemId: string;
+}) => {
+  try {
+    // Find the user's cart item
+    const cartItem = await prisma.cartItem.findFirst({
+      where: {
+        id: cartItemId,
+        Cart: { userId: userId },
+      },
+    });
+
+    if (!cartItem) {
+      throw new AppError(httpStatus.NOT_FOUND, "Cart item not found");
+    }
+
+    // Remove the item from the cart
+    await prisma.cartItem.delete({
+      where: { id: cartItem.id },
+    });
+
+    // check if cart has items left
+    const cart = await prisma.cart.findUnique({
+      where: { id: cartItem.cartId },
+    });
+
+    if (cart) {
+      // If the cart is empty after removing the item, delete the cart
+      const cartItems = await prisma.cartItem.findMany({
+        where: { cartId: cart.id },
+      });
+
+      if (cartItems.length === 0) {
+        await prisma.cart.delete({
+          where: { id: cart.id },
+        });
+      }
+    }
+
+    return cartItem;
+  } catch (error: any) {
+    throw new AppError(
+      error.statusCode || httpStatus.INTERNAL_SERVER_ERROR,
+      error.message || "Failed to remove item from cart"
+    );
+  }
+};
+
+export const increaseCartItemQuantity = async ({
+  userId,
+  cartItemId,
+}: {
+  userId: string;
+  cartItemId: string;
+}) => {
+  try {
+    // Find the user's cart item
+    const cartItem = await prisma.cartItem.findFirst({
+      where: {
+        id: cartItemId,
+        Cart: { userId: userId },
+      },
+    });
+
+    if (!cartItem) {
+      throw new AppError(httpStatus.NOT_FOUND, "Cart item not found");
+    }
+
+    // Increase the quantity
+    const updatedCartItem = await prisma.cartItem.update({
+      where: { id: cartItem.id },
+      data: {
+        quantity: cartItem.quantity + 1,
+      },
+    });
+
+    return updatedCartItem;
+  } catch (error: any) {
+    throw new AppError(
+      error.statusCode || httpStatus.INTERNAL_SERVER_ERROR,
+      error.message || "Failed to increase cart item quantity"
+    );
+  }
+};
+
+const decreaseCartItemQuantity = async ({
+  userId,
+  cartItemId,
+}: {
+  userId: string;
+  cartItemId: string;
+}) => {
+  try {
+    // Find the user's cart item
+    const cartItem = await prisma.cartItem.findFirst({
+      where: {
+        id: cartItemId,
+        Cart: { userId: userId },
+      },
+    });
+
+    if (!cartItem) {
+      throw new AppError(httpStatus.NOT_FOUND, "Cart item not found");
+    }
+
+    if (cartItem.quantity <= 1) {
+      await prisma.cartItem.delete({
+        where: { id: cartItem.id },
+      });
+
+      const cart = await prisma.cart.findUnique({
+        where: { id: cartItem.cartId },
+      });
+
+      if (cart) {
+        // If the cart is empty after removing the item, delete the cart
+        const cartItems = await prisma.cartItem.findMany({
+          where: { cartId: cart.id },
+        });
+
+        if (cartItems.length === 0) {
+          await prisma.cart.delete({
+            where: { id: cart.id },
+          });
+        }
+      }
+
+      return null;
+    }
+
+    // Decrease the quantity
+    const updatedCartItem = await prisma.cartItem.update({
+      where: { id: cartItem.id },
+      data: {
+        quantity: cartItem.quantity - 1,
+      },
+    });
+
+    return updatedCartItem;
+  } catch (error: any) {
+    throw new AppError(
+      error.statusCode || httpStatus.INTERNAL_SERVER_ERROR,
+      error.message || "Failed to decrease cart item quantity"
+    );
+  }
+};
+
 export const CartService = {
   getMyCart,
   addToCart,
+  removeFromCart: removeItemFromCart,
+  increase: increaseCartItemQuantity,
+  decrease: decreaseCartItemQuantity,
 };

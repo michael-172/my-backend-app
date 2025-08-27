@@ -36,7 +36,58 @@ const addToCart = catchAsync(
   }
 );
 
+const increaseCartItemQuantity = catchAsync(
+  async (req: Request & { user?: { id: string } }, res: Response) => {
+    const result = await CartService.increase({
+      userId: req.user!.id,
+      cartItemId: req.body.cartItemId,
+    });
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Cart item quantity increased successfully",
+      data: result,
+    });
+  }
+);
+
+const decreaseCartItemQuantity = catchAsync(
+  async (req: Request & { user?: { id: string } }, res: Response) => {
+    const result = await CartService.decrease({
+      userId: req.user!.id,
+      cartItemId: req.body.cartItemId,
+    });
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Cart item quantity decreased successfully",
+      data: result,
+    });
+  }
+);
+
+const removeFromCart = catchAsync(
+  async (req: Request & { user?: { id: string } }, res: Response) => {
+    const result = await CartService.removeFromCart({
+      userId: req.user!.id,
+      cartItemId: req.body.cartItemId,
+    });
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Cart item removed successfully",
+      data: result,
+    });
+  }
+);
+
 export const CartController = {
   getAll: getMyCart,
-  addToCart,
+  add: addToCart,
+  remove: removeFromCart,
+  increase: increaseCartItemQuantity,
+  decrease: decreaseCartItemQuantity,
 };
