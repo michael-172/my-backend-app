@@ -7,6 +7,7 @@ import { authMiddleware, authorize } from "../middlewares/auth";
 import { categoryAdminRouter } from "../modules/categoriesModule/admin/category.route";
 import { categoryRouter } from "../modules/categoriesModule/user/category.route";
 import { cartRouter } from "../modules/cartModule/user/cart.route";
+import { whishListRouter } from "../modules/whishListModule/user/whishlist.route";
 
 const router = express.Router();
 
@@ -26,6 +27,12 @@ const moduleRoutes = [
   {
     path: "/cart",
     route: cartRouter,
+    isAuth: true,
+    isAuthorizable: true,
+  },
+  {
+    path: "/whishlist",
+    route: whishListRouter,
     isAuth: true,
     isAuthorizable: true,
   },
