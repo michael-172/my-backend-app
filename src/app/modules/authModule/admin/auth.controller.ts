@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 
 import { RequestHandler } from "express";
-import catchAsync from "../../utils/asyncCatch";
-import sendResponse from "../../utils/sendResponse";
+import catchAsync from "../../../utils/asyncCatch";
+import sendResponse from "../../../utils/sendResponse";
 import httpStatus from "http-status";
 import { AuthService } from "./auth.service";
 

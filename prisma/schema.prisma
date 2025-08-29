@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma"
@@ -34,7 +28,7 @@ model User {
 }
 
 model Categories {
-  id       String    @id @default(uuid())
+  id       String    @id
   name     String    @unique
   image    String
   products Product[]
@@ -47,35 +41,59 @@ enum ProductStatus {
 }
 
 model Product {
-  id                 String          @id @default(uuid())
+  id                 String             @id @default(uuid())
   name               String
-  price              String
-  priceAfterDiscount String          @map("price_after_discount")
+  price              Decimal            @db.Decimal(10, 2)
+  priceAfterDiscount Decimal?           @map("price_after_discount") @db.Decimal(10, 2)
   description        String
-  sku                String          @unique
+  sku                String             @unique
   categoryId         String
   images             String[]
-  category           Categories      @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  category           Categories         @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   reviews            Reviews[]
   average_ratings    Int?
   cart_items         CartItem[]
-  createdAt          DateTime        @default(now()) @map("created_at")
-  updatedAt          DateTime        @updatedAt @map("updated_at")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
   WhishListItem      WhishListItem[]
-  variants           Variant[]
-  status             ProductStatus   @default(AVAILABLE)
+  status             ProductStatus      @default(AVAILABLE)
+  attributes         ProductAttribute[]
+  variations         ProductVariation[]
 }
 
-model Variant {
-  id         String     @id @default(uuid())
+model ProductAttribute {
+  id        Int              @id @default(autoincrement())
+  name      String
+  productId String
+  product   Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  values    AttributeValue[]
+}
+
+model AttributeValue {
+  id                  Int                  @id @default(autoincrement())
+  value               String
+  productAttributeId  Int
+  productAttribute    ProductAttribute     @relation(fields: [productAttributeId], references: [id], onDelete: Cascade)
+  variationAttributes VariationAttribute[]
+}
+
+model ProductVariation {
+  id         Int                  @id @default(autoincrement())
+  sku        String
+  price      Float
+  stock      Int
   productId  String
-  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
-  attributes Json // e.g. { "Color": "Red", "Size": "M" }
-  image      String?
-  stock      Int        @default(0)
-  price      String?
-  sku        String?
-  CartItem   CartItem[]
+  product    Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  attributes VariationAttribute[]
+  cartItems  CartItem[]
+}
+
+model VariationAttribute {
+  id                 Int              @id @default(autoincrement())
+  attributeValueId   Int
+  attributeValue     AttributeValue   @relation(fields: [attributeValueId], references: [id], onDelete: Cascade)
+  productVariationId Int
+  productVariation   ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: Cascade)
 }
 
 model Reviews {
@@ -110,16 +128,16 @@ model Cart {
 }
 
 model CartItem {
-  id        String   @id @default(uuid())
-  cartId    String
-  Cart      Cart     @relation(fields: [cartId], references: [id])
-  productId String
-  product   Product  @relation(fields: [productId], references: [id])
-  variantId String
-  variant   Variant  @relation(fields: [variantId], references: [id])
-  quantity  Int      @default(1)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id                 String            @id @default(uuid())
+  cartId             String
+  Cart               Cart              @relation(fields: [cartId], references: [id])
+  productId          String
+  product            Product           @relation(fields: [productId], references: [id])
+  productVariationId Int?
+  productVariation   ProductVariation? @relation(fields: [productVariationId], references: [id])
+  quantity           Int               @default(1)
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
 }
 
 model WhishList {

@@ -1,12 +1,12 @@
-import AppError from "../../errors/AppError";
+import AppError from "../../../errors/AppError";
 import httpStatus from "http-status";
 import { LoginPayload, SignUpPayload } from "./auth.interface";
 import bcrypt from "bcrypt";
-import prisma from "../../utils/prisma";
+import prisma from "../../../utils/prisma";
 import { v4 as uuidv4 } from "uuid";
 import jwt from "jsonwebtoken";
-import JWT_SECRET from "../../config/index";
-import { generateToken } from "../../utils/generateToken";
+import JWT_SECRET from "../../../config/index";
+import { generateToken } from "../../../utils/generateToken";
 const Login = async (
   { email, password }: LoginPayload,
   role: "user" | "admin"

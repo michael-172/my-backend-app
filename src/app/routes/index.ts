@@ -1,5 +1,6 @@
 import express from "express";
-import { AuthRouter } from "../modules/authModule/auth.route";
+import { AuthRouter } from "../modules/authModule/user/auth.route";
+import { AdminAuthRouter } from "../modules/authModule/admin/auth.route";
 import { userAdminRouter } from "../modules/userModule/admin/users.route";
 import { ProductRouter } from "../modules/productModule/user/product.route";
 import { ProductAdminRouter } from "../modules/productModule/admin/product.route";
@@ -40,6 +41,12 @@ const moduleRoutes = [
 
 const adminRoutes = [
   {
+    path: "/auth",
+    route: AdminAuthRouter,
+    disableAuth: true,
+    isAuthorizable: true,
+  },
+  {
     path: "/products",
     route: ProductAdminRouter,
   },
@@ -65,8 +72,8 @@ moduleRoutes.forEach((route) =>
 adminRoutes.forEach((route) =>
   router.use(
     `/admins${route.path}`,
-    authMiddleware,
-    authorize("admin"),
+    !route.disableAuth ? authMiddleware : (req, res, next) => next(),
+    !route.isAuthorizable ? authorize("admin") : (req, res, next) => next(),
     route.route
   )
 );

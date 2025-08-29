@@ -17,17 +17,17 @@ export const createProduct = async (productData: CreateProductPayload) => {
       sku: productData.sku,
       categoryId: productData.categoryId,
       images: productData.images, // must already be an array
-      variants: {
-        create: productData?.variants.map((variant) => ({
-          attributes: variant.attributes, // must be JSON, not string
-          image: variant.image,
-          stock: variant.stock ? +variant.stock : 0,
-          price: variant.price ? String(variant.price) : "0",
-          sku: variant.sku,
-        })),
-      },
+      // variants: {
+      //   create: productData?.variants.map((variant) => ({
+      //     attributes: variant.attributes, // must be JSON, not string
+      //     image: variant.image,
+      //     stock: variant.stock ? +variant.stock : 0,
+      //     price: variant.price ? String(variant.price) : "0",
+      //     sku: variant.sku,
+      //   })),
+      // },
     },
-    include: { variants: true },
+    // include: { variants: true },
   });
 
   return product;
@@ -108,12 +108,47 @@ export const getAllProductsService = async (reqQuery: {
           priceAfterDiscount: true,
           images: true,
           status: true,
-          variants: true,
+          // variants: true,
           categoryId: true,
           sku: true,
           createdAt: true,
           updatedAt: true,
           reviews: true,
+          attributes: {
+            select: {
+              id: true,
+              name: true,
+              values: {
+                select: {
+                  value: true,
+                },
+              },
+            },
+          },
+          variations: {
+            select: {
+              id: true,
+              price: true,
+              stock: true,
+              sku: true,
+              attributes: {
+                select: {
+                  id: true,
+                  attributeValue: {
+                    select: {
+                      id: true,
+                      value: true,
+                      productAttribute: {
+                        select: {
+                          name: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
         orderBy,
         skip,
@@ -125,7 +160,7 @@ export const getAllProductsService = async (reqQuery: {
       return Promise.reject(new AppError(https.NOT_FOUND, "No products found"));
     }
 
-    const data = products.map((p: IProduct) => {
+    const data = products.map((p) => {
       const ratings = p.reviews?.map((r) => r.rating) ?? [];
       const rating_average =
         ratings.length > 0
@@ -133,11 +168,34 @@ export const getAllProductsService = async (reqQuery: {
               (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(2)
             )
           : 0;
-      // map over images and add base url to them
-      // const images = p.images.map((img) => `${env.BASE_URL}/${img}`);
-      const { reviews, ...rest } = p;
-      return { ...rest, rating_average };
+
+      return {
+        id: p.id,
+        name: p.name,
+        price: p.price,
+        priceAfterDiscount: p.priceAfterDiscount,
+        sku: p.sku,
+        images: p.images,
+        status: p.status,
+        rating_average,
+        attributes: p.attributes.map((attr) => ({
+          id: attr.id,
+          name: attr.name,
+          values: attr.values.map((val) => ({
+            value: val.value,
+          })),
+        })),
+        variations: p.variations.map((v) => ({
+          id: v.id,
+          price: v.price,
+          attributes: v.attributes.map((a) => ({
+            name: a.attributeValue.productAttribute.name,
+            value: a.attributeValue.value,
+          })),
+        })),
+      };
     });
+
     return {
       status: "success",
       data,
@@ -157,25 +215,121 @@ export const getAllProductsService = async (reqQuery: {
 };
 
 export const deleteProductService = async ({ id }: { id: string }) => {
-  const product = await prisma.product
-    .findFirst({
-      where: { id },
-    })
-    .then((prod) => {
-      if (!prod) {
-        throw new Error("Product not found");
+  const product = await prisma.product.findFirst({
+    where: { id },
+  });
+
+  if (!product) {
+    throw new AppError(https.NOT_FOUND, "Product not found");
+  }
+
+  await prisma.product.delete({
+    where: { id },
+  });
+
+  return {
+    status: "success",
+    message: "product deleted successfully",
+  };
+};
+
+const addProductAttributesService = async ({
+  payload,
+}: {
+  payload: createAttributesPayload;
+}) => {
+  const { attributesWithValues, productId } = payload;
+  const product = await prisma.product.findUnique({ where: { id: productId } });
+  if (!product) {
+    throw new AppError(https.NOT_FOUND, "Product not found");
+  }
+
+  const createAttributes = await prisma.productAttribute.create({
+    data: {
+      name: attributesWithValues.name,
+      values: {
+        create: attributesWithValues.values.map((value: string) => ({
+          value,
+        })),
+      },
+      productId: product.id,
+    },
+    include: { values: true },
+  });
+
+  return {
+    status: "success",
+    data: createAttributes,
+  };
+};
+
+const addVariationsService = async ({
+  payload,
+}: {
+  payload: createVariationsPayload;
+}) => {
+  const { variations, productId } = payload;
+  const product = await prisma.product.findUnique({ where: { id: productId } });
+  if (!product) {
+    throw new AppError(https.NOT_FOUND, "Product not found");
+  }
+
+  // Validate attributeValueIds
+  for (const variation of variations) {
+    for (const attrValueId of variation.attributeValueIds) {
+      const attrValue = await prisma.attributeValue.findUnique({
+        where: { id: attrValueId },
+        include: { productAttribute: true },
+      });
+      if (!attrValue || attrValue.productAttribute.productId !== productId) {
+        throw new AppError(
+          https.BAD_REQUEST,
+          `Invalid attribute value ID: ${attrValueId}`
+        );
       }
-      return {
-        status: "success",
-        message: "product deleted successfully",
-      };
-    });
+    }
+  }
+
+  // Create variations
+  const updatedProduct = await prisma.product.update({
+    where: { id: productId },
+    data: {
+      variations: {
+        create: variations.map((v) => ({
+          sku: v.sku,
+          price: v.price,
+          stock: v.stock,
+          attributes: {
+            create: v.attributeValueIds.map((id) => ({
+              attributeValueId: id,
+            })),
+          },
+        })),
+      },
+    },
+    include: {
+      variations: {
+        include: {
+          attributes: {
+            include: { attributeValue: true },
+          },
+        },
+      },
+    },
+  });
+
+  return {
+    status: "success",
+    data: updatedProduct,
+  };
 };
 
 export const ProductAdminService = {
   create: createProduct,
   getAll: getAllProductsService,
   delete: deleteProductService,
+  addAttributes: addProductAttributesService,
+  addVariations: addVariationsService,
 };
 
 // export const getProductDetailsService = asyncHandler(async (id) => {

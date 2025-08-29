@@ -1,24 +1,108 @@
+// Note: The Decimal type from Prisma is often represented as a string or number in TypeScript.
+// Using 'number' is common for calculations, but for financial precision, a library like 'decimal.js' might be used.
+// For simplicity, we'll use 'number' here.
+
+// Placeholders for related models that were not defined in the schema.
+interface Category {
+  id: string;
+  // ... other category properties
+}
+
+interface Review {
+  id: string;
+  // ... other review properties
+}
+
+interface CartItem {
+  id: string;
+  // ... other cart item properties
+}
+
+interface WishListItem {
+  id: string;
+  // ... other wish list item properties
+}
+
+/**
+ * Enum for the status of a product.
+ */
+enum ProductStatus {
+  AVAILABLE = "AVAILABLE",
+  OUT_OF_STOCK = "OUT_OF_STOCK",
+  DISCONTINUED = "DISCONTINUED",
+}
+
+/**
+ * Represents a single attribute of a product variation.
+ * Links a variation to a specific attribute value (e.g., this variation is "Red").
+ */
+interface VariationAttribute {
+  id: number;
+  attributeValueId: number;
+  attributeValue: AttributeValue;
+  productVariationId: number;
+  productVariation: ProductVariation;
+}
+
+/**
+ * Represents a specific variation of a product (e.g., a T-shirt, size M, color Red).
+ */
+interface ProductVariation {
+  id: number;
+  sku: string;
+  price: number;
+  stock: number;
+  productId: string;
+  product: Product;
+  attributes: VariationAttribute[];
+  cartItems: CartItem[];
+}
+
+/**
+ * Represents the specific value for a product attribute (e.g., "Red", "Large").
+ */
+interface AttributeValue {
+  id: number;
+  value: string;
+  productAttributeId: number;
+  productAttribute: ProductAttribute;
+  variationAttributes: VariationAttribute[];
+}
+
+/**
+ * Represents a configurable attribute of a product (e.g., "Color", "Size").
+ */
+interface ProductAttribute {
+  id: number;
+  name: string;
+  productId: string;
+  product: Product;
+  values: AttributeValue[];
+}
+
+/**
+ * Represents the main product entity.
+ */
 interface IProduct {
   id: string;
   name: string;
-  description?: string;
-  price: string;
-  priceAfterDiscount: string;
+  price: number;
+  priceAfterDiscount: number | null;
+  description: string;
   sku: string;
   categoryId: string;
   images: string[];
-  average_ratings?: number | null;
+  category: Category;
+  reviews: Review[];
+  average_ratings: number | null;
+  cart_items: CartItem[];
   createdAt: Date;
   updatedAt: Date;
-  status: "AVAILABLE" | "OUT_OF_STOCK" | "DISCONTINUED";
-  // Relations (optional, depending on usage)
-  // category?: Categories;
-  reviews?: Review[];
-  // cart_items?: CartItem[];
-  // WhishListItem?: WhishListItem[];
-  // variants?: Variant[];
+  WishListItem: WishListItem[];
+  status: ProductStatus;
+  attributes: ProductAttribute[];
+  variations: ProductVariation[];
 }
-
 interface VariantPayload {
   attributes: Record<string, any>;
   image: string;
@@ -36,4 +120,26 @@ interface CreateProductPayload {
   categoryId: string;
   images: string[];
   variants: VariantPayload[];
+}
+
+interface createAttributesPayload {
+  productId: string;
+  attributesWithValues: AttributeWithValues;
+}
+
+interface AttributeWithValues {
+  name: string;
+  values: string[];
+}
+
+interface CreateVariationPayload {
+  sku: string;
+  price: number;
+  stock: number;
+  attributeValueIds: number[];
+}
+
+interface createVariationsPayload {
+  productId: string;
+  variations: CreateVariationPayload[];
 }
