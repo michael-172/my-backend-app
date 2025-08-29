@@ -4,22 +4,22 @@
 
 // Placeholders for related models that were not defined in the schema.
 interface Category {
-  id: string;
+  id: number;
   // ... other category properties
 }
 
 interface Review {
-  id: string;
+  id: number;
   // ... other review properties
 }
 
 interface CartItem {
-  id: string;
+  id: number;
   // ... other cart item properties
 }
 
 interface WishListItem {
-  id: string;
+  id: number;
   // ... other wish list item properties
 }
 
@@ -75,7 +75,7 @@ interface AttributeValue {
 interface ProductAttribute {
   id: number;
   name: string;
-  productId: string;
+  productId: number;
   product: Product;
   values: AttributeValue[];
 }
@@ -84,13 +84,13 @@ interface ProductAttribute {
  * Represents the main product entity.
  */
 interface IProduct {
-  id: string;
+  id: number;
   name: string;
   price: number;
   priceAfterDiscount: number | null;
   description: string;
   sku: string;
-  categoryId: string;
+  categoryId: number;
   images: string[];
   category: Category;
   reviews: Review[];
@@ -122,9 +122,21 @@ interface CreateProductPayload {
   variants: VariantPayload[];
 }
 
+interface UpdateProductPayload {
+  name?: string;
+  description?: string;
+  price?: number;
+  priceAfterDiscount?: number;
+  sku?: string;
+  status?: ProductStatus;
+  categoryId?: string;
+  images?: string[];
+  variants?: VariantPayload[];
+}
+
 interface createAttributesPayload {
-  productId: string;
-  attributesWithValues: AttributeWithValues;
+  productId: number;
+  attributesWithValues: AttributeWithValues[];
 }
 
 interface AttributeWithValues {
@@ -140,6 +152,6 @@ interface CreateVariationPayload {
 }
 
 interface createVariationsPayload {
-  productId: string;
+  productId: number;
   variations: CreateVariationPayload[];
 }

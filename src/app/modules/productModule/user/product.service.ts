@@ -5,20 +5,72 @@ import { ProductAdminService } from "../admin/product.service";
 
 export const getProductDetailsService = async ({ id }: { id: string }) => {
   const product = await prisma.product.findUnique({
-    where: { id },
+    where: { id: +id },
     include: {
       reviews: { select: { rating: true } },
-      variants: true,
+      attributes: {
+        include: {
+          values: {
+            include: {
+              productAttribute: true,
+            },
+          },
+        },
+      },
+      variations: {
+        include: {
+          attributes: {
+            include: {
+              attributeValue: {
+                include: {
+                  productAttribute: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
 
   if (!product) {
     throw new AppError(https.NOT_FOUND, "Product not found");
   }
+  const rating_average =
+    product.reviews.reduce((acc, review) => acc + review.rating, 0) /
+      product.reviews.length || 0;
+  const mappedProduct = {
+    id: product.id,
+    name: product.name,
+    price: product.price,
+    priceAfterDiscount: product.priceAfterDiscount,
+    sku: product.sku,
+    images: product.images,
+    status: product.status,
+    rating_average,
+    attributes: product.attributes.map((attr) => ({
+      id: attr.id,
+      name: attr.name,
+      values: attr.values.map((val) => ({
+        // id: val.id,
+        value: val.value,
+      })),
+    })),
+    variations: product.variations.map((v) => ({
+      id: v.id,
+      price: v.price,
+      attributes: v.attributes.map((a) => ({
+        id: a.id,
+        attributeValueId: a.attributeValue.id,
+        name: a.attributeValue.productAttribute.name,
+        value: a.attributeValue.value,
+      })),
+    })),
+  };
 
   return {
     status: "success",
-    data: product,
+    data: mappedProduct,
   };
 };
 

@@ -6,6 +6,13 @@ import env from "../../../config";
 
 const sortOptions = ["A-Z", "Z-A", "low-to-high", "high-to-low"];
 export const createProduct = async (productData: CreateProductPayload) => {
+  const category = await prisma.categories.findUnique({
+    where: { id: +productData.categoryId },
+  });
+  if (!category) {
+    return Promise.reject(new AppError(https.NOT_FOUND, "Category not found"));
+  }
+
   const product = await prisma.product.create({
     data: {
       name: productData.name,
@@ -15,7 +22,7 @@ export const createProduct = async (productData: CreateProductPayload) => {
         ? String(productData.priceAfterDiscount)
         : "0",
       sku: productData.sku,
-      categoryId: productData.categoryId,
+      categoryId: +productData.categoryId,
       images: productData.images, // must already be an array
       // variants: {
       //   create: productData?.variants.map((variant) => ({
@@ -31,6 +38,39 @@ export const createProduct = async (productData: CreateProductPayload) => {
   });
 
   return product;
+};
+
+const updateProduct = async ({
+  productId,
+  data,
+}: {
+  productId: string;
+  data: UpdateProductPayload;
+}) => {
+  const product = await prisma.product.findUnique({
+    where: { id: +productId },
+  });
+  if (!product) {
+    return Promise.reject(new AppError(https.NOT_FOUND, "Product not found"));
+  }
+
+  const updatedProduct = await prisma.product.update({
+    where: { id: +productId },
+    data: {
+      name: data.name ?? undefined,
+      price: data.price ? String(data.price) : "0",
+      images: data.images ?? undefined,
+      description: data.description ?? undefined,
+      sku: data.sku ?? undefined,
+      categoryId: data.categoryId ? +data.categoryId : undefined,
+      status: data.status ?? undefined,
+      priceAfterDiscount: data.priceAfterDiscount
+        ? String(data.priceAfterDiscount)
+        : "0",
+    },
+  });
+
+  return updatedProduct;
 };
 
 export const getAllProductsService = async (reqQuery: {
@@ -182,6 +222,7 @@ export const getAllProductsService = async (reqQuery: {
           id: attr.id,
           name: attr.name,
           values: attr.values.map((val) => ({
+            // id: val.id,
             value: val.value,
           })),
         })),
@@ -189,6 +230,8 @@ export const getAllProductsService = async (reqQuery: {
           id: v.id,
           price: v.price,
           attributes: v.attributes.map((a) => ({
+            id: a.id,
+            attributeValueId: a.attributeValue.id,
             name: a.attributeValue.productAttribute.name,
             value: a.attributeValue.value,
           })),
@@ -216,7 +259,7 @@ export const getAllProductsService = async (reqQuery: {
 
 export const deleteProductService = async ({ id }: { id: string }) => {
   const product = await prisma.product.findFirst({
-    where: { id },
+    where: { id: +id },
   });
 
   if (!product) {
@@ -224,7 +267,7 @@ export const deleteProductService = async ({ id }: { id: string }) => {
   }
 
   await prisma.product.delete({
-    where: { id },
+    where: { id: +id },
   });
 
   return {
@@ -239,23 +282,34 @@ const addProductAttributesService = async ({
   payload: createAttributesPayload;
 }) => {
   const { attributesWithValues, productId } = payload;
-  const product = await prisma.product.findUnique({ where: { id: productId } });
+
+  // Ensure product exists
+  const product = await prisma.product.findUnique({
+    where: { id: +productId },
+  });
   if (!product) {
     throw new AppError(https.NOT_FOUND, "Product not found");
   }
 
-  const createAttributes = await prisma.productAttribute.create({
-    data: {
-      name: attributesWithValues.name,
-      values: {
-        create: attributesWithValues.values.map((value: string) => ({
-          value,
-        })),
-      },
-      productId: product.id,
-    },
-    include: { values: true },
-  });
+  // Create all attributes with their values in a single transaction
+  const createAttributes = await prisma.$transaction(
+    attributesWithValues.map((attr) =>
+      prisma.productAttribute.create({
+        data: {
+          name: attr.name,
+          productId: product.id,
+          values: {
+            create: attr.values.map((value: string) => ({
+              value,
+            })),
+          },
+        },
+        include: {
+          values: true, // return created values too
+        },
+      })
+    )
+  );
 
   return {
     status: "success",
@@ -324,42 +378,250 @@ const addVariationsService = async ({
   };
 };
 
+export const getProductDetailsService = async ({ id }: { id: string }) => {
+  const product = await prisma.product.findUnique({
+    where: { id: +id },
+  });
+
+  if (!product) {
+    throw new AppError(https.NOT_FOUND, "Product not found");
+  }
+
+  // const averageRating = product..reduce((acc, review) => acc + review.rating, 0) / product.reviews.length || 0;
+
+  return {
+    status: "success",
+    data: product,
+  };
+};
+
+const getProductAttributesService = async ({
+  productId,
+}: {
+  productId: string;
+}) => {
+  const attributes = await prisma.productAttribute.findMany({
+    where: { productId: +productId },
+    include: { values: true },
+  });
+
+  return {
+    status: "success",
+    data: attributes,
+  };
+};
+
+const deleteProductAttributeService = async ({
+  productId,
+  attributeId,
+}: {
+  productId: string;
+  attributeId: string;
+}) => {
+  const product = await prisma.product.findUnique({
+    where: { id: +productId },
+  });
+  if (!product) {
+    throw new AppError(https.NOT_FOUND, "Product not found");
+  }
+
+  await prisma.productAttribute.delete({
+    where: { id: +attributeId },
+  });
+
+  return {
+    status: "success",
+    message: "Product attribute deleted successfully",
+  };
+};
+
+const updateProductAttributeService = async ({
+  productId,
+  attributeId,
+  data,
+}: {
+  productId: string;
+  attributeId: string;
+  data: Partial<ProductAttribute>;
+}) => {
+  const product = await prisma.product.findUnique({
+    where: { id: +productId },
+  });
+  if (!product) {
+    throw new AppError(https.NOT_FOUND, "Product not found");
+  }
+
+  const attribute = await prisma.productAttribute.findUnique({
+    where: { id: +attributeId },
+  });
+  if (!attribute) {
+    throw new AppError(https.NOT_FOUND, "Product attribute not found");
+  }
+  await prisma.$transaction(async (tx) => {
+    // delete missing values
+    const existing = await tx.attributeValue.findMany({
+      where: { productAttributeId: +attributeId },
+    });
+
+    const incomingIds = data.values?.map((v) => v.id).filter(Boolean) ?? [];
+    const toDelete = existing.filter((ev) => !incomingIds.includes(ev.id));
+
+    if (toDelete.length > 0) {
+      await tx.attributeValue.deleteMany({
+        where: { id: { in: toDelete.map((d) => d.id) } },
+      });
+    }
+
+    // update attribute + upsert values
+    return tx.productAttribute.update({
+      where: { id: +attributeId },
+      data: {
+        name: data.name ?? undefined,
+        values: data.values
+          ? {
+              upsert: data.values.map((v) => ({
+                where: { id: v.id ?? 0 },
+                create: { value: v.value },
+                update: { value: v.value },
+              })),
+            }
+          : undefined,
+      },
+      include: { values: true },
+    });
+  });
+};
+
+const getVariationsService = async ({ productId }: { productId: string }) => {
+  const variations = await prisma.productVariation.findMany({
+    where: { productId: +productId },
+    include: {
+      attributes: {
+        include: { attributeValue: true },
+      },
+    },
+  });
+
+  return {
+    status: "success",
+    data: variations,
+  };
+};
+
+const deleteVariationService = async ({
+  productId,
+  variationId,
+}: {
+  productId: string;
+  variationId: string;
+}) => {
+  const product = await prisma.product.findUnique({
+    where: { id: +productId },
+  });
+  if (!product) {
+    throw new AppError(https.NOT_FOUND, "Product not found");
+  }
+
+  await prisma.productVariation.delete({
+    where: { id: +variationId },
+  });
+
+  return {
+    status: "success",
+    message: "Product variation deleted successfully",
+  };
+};
+
+const updateVariationService = async ({
+  productId,
+  variationId,
+  data,
+}: {
+  productId: string;
+  variationId: string;
+  data: Partial<ProductVariation> & {
+    attributes?: { attributeValueId: number }[];
+  };
+}) => {
+  // Ensure product exists
+  const product = await prisma.product.findUnique({
+    where: { id: +productId },
+  });
+  if (!product) {
+    throw new AppError(https.NOT_FOUND, "Product not found");
+  }
+
+  // Ensure variation exists
+  const variation = await prisma.productVariation.findUnique({
+    where: { id: +variationId },
+    include: { attributes: true },
+  });
+  if (!variation) {
+    throw new AppError(https.NOT_FOUND, "Product variation not found");
+  }
+
+  // Run updates in a transaction
+  const updatedVariation = await prisma.$transaction(async (tx) => {
+    // Step 1: remove old attributes if new ones provided
+    if (data.attributes) {
+      await tx.variationAttribute.deleteMany({
+        where: { productVariationId: +variationId },
+      });
+
+      await tx.variationAttribute.createMany({
+        data: data.attributes.map((attr) => ({
+          attributeValueId: attr.attributeValueId,
+          productVariationId: +variationId,
+        })),
+      });
+    }
+
+    // Step 2: update variation fields
+    return tx.productVariation.update({
+      where: { id: +variationId },
+      data: {
+        sku: data.sku ?? undefined,
+        price: data.price ?? undefined,
+        stock: data.stock ?? undefined,
+      },
+      include: {
+        attributes: {
+          include: { attributeValue: { include: { productAttribute: true } } },
+        },
+      },
+    });
+  });
+
+  return {
+    status: "success",
+    data: updatedVariation,
+  };
+};
+
 export const ProductAdminService = {
   create: createProduct,
+  update: updateProduct,
   getAll: getAllProductsService,
   delete: deleteProductService,
   addAttributes: addProductAttributesService,
   addVariations: addVariationsService,
+  getAttributes: getProductAttributesService,
+  deleteAttribute: deleteProductAttributeService,
+  updateAttribute: updateProductAttributeService,
+  getVariations: getVariationsService,
+  deleteVariation: deleteVariationService,
+  updateVariation: updateVariationService,
 };
 
-// export const getProductDetailsService = asyncHandler(async (id) => {
-//   const product = await prisma.product.findUnique({
-//     where: { id },
-//     include: {
-//       reviews: { select: { rating: true } },
-//       variants: true,
-//     },
-//   });
-
-//   if (!product) {
-//     throw new AppError(https.NOT_FOUND, "Product not found");
-//   }
-
-//   return {
-//     status: "success",
-//     data: product,
-//   };
-// });
-
 // export const deleteProductService = asyncHandler(async (id: string) => {
-//   const product = await prisma.product.findUnique({ where: { id } });
+//   const product = await prisma.product.findUnique({ where: { id: +id } });
 
 //   if (!product) {
 //     throw new AppError(https.NOT_FOUND, "Product not found");
 //   }
 
 //   await prisma.product.delete({
-//     where: { id },
+//     where: { id: +id },
 //   });
 
 //   return {

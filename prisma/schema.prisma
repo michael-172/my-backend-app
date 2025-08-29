@@ -9,7 +9,7 @@ datasource db {
 }
 
 model User {
-  id               String      @id @default(uuid())
+  id               Int         @id @default(autoincrement())
   name             String
   display_name     String?
   email            String      @unique
@@ -28,7 +28,7 @@ model User {
 }
 
 model Categories {
-  id       String    @id
+  id       Int       @id @default(autoincrement())
   name     String    @unique
   image    String
   products Product[]
@@ -41,13 +41,13 @@ enum ProductStatus {
 }
 
 model Product {
-  id                 String             @id @default(uuid())
+  id                 Int                @id @default(autoincrement())
   name               String
   price              Decimal            @db.Decimal(10, 2)
   priceAfterDiscount Decimal?           @map("price_after_discount") @db.Decimal(10, 2)
   description        String
   sku                String             @unique
-  categoryId         String
+  categoryId         Int
   images             String[]
   category           Categories         @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   reviews            Reviews[]
@@ -64,7 +64,7 @@ model Product {
 model ProductAttribute {
   id        Int              @id @default(autoincrement())
   name      String
-  productId String
+  productId Int
   product   Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
   values    AttributeValue[]
 }
@@ -82,7 +82,7 @@ model ProductVariation {
   sku        String
   price      Float
   stock      Int
-  productId  String
+  productId  Int
   product    Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
   attributes VariationAttribute[]
   cartItems  CartItem[]
@@ -97,12 +97,12 @@ model VariationAttribute {
 }
 
 model Reviews {
-  id        String   @id @default(uuid())
+  id        Int      @id @default(autoincrement())
   title     String
   comment   String
-  userId    String
+  userId    Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  productId String
+  productId Int
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   likes     Likes[]
   rating    Int
@@ -111,16 +111,16 @@ model Reviews {
 }
 
 model Likes {
-  id        String   @id @default(uuid())
-  reviewId  String
+  id        Int      @id @default(autoincrement())
+  reviewId  Int
   reviews   Reviews  @relation(fields: [reviewId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 }
 
 model Cart {
-  id         String     @id @default(uuid())
-  userId     String     @unique
+  id         Int        @id @default(autoincrement())
+  userId     Int        @unique
   User       User       @relation(fields: [userId], references: [id])
   cart_items CartItem[]
   createdAt  DateTime   @default(now()) @map("created_at")
@@ -128,10 +128,10 @@ model Cart {
 }
 
 model CartItem {
-  id                 String            @id @default(uuid())
-  cartId             String
+  id                 Int               @id @default(autoincrement())
+  cartId             Int
   Cart               Cart              @relation(fields: [cartId], references: [id])
-  productId          String
+  productId          Int
   product            Product           @relation(fields: [productId], references: [id])
   productVariationId Int?
   productVariation   ProductVariation? @relation(fields: [productVariationId], references: [id])
@@ -141,8 +141,8 @@ model CartItem {
 }
 
 model WhishList {
-  id             String          @id @default(uuid())
-  userId         String
+  id             Int             @id @default(autoincrement())
+  userId         Int
   User           User            @relation(fields: [userId], references: [id])
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
@@ -150,18 +150,18 @@ model WhishList {
 }
 
 model WhishListItem {
-  id          String    @id @default(uuid())
-  whishListId String
+  id          Int       @id @default(autoincrement())
+  whishListId Int
   WhishList   WhishList @relation(fields: [whishListId], references: [id])
-  productId   String
+  productId   Int
   product     Product   @relation(fields: [productId], references: [id])
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 }
 
 model Address {
-  id        String   @id @default(uuid())
-  userId    String
+  id        Int      @id @default(autoincrement())
+  userId    Int
   User      User     @relation(fields: [userId], references: [id])
   street    String
   city      String

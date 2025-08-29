@@ -16,12 +16,27 @@ const createProduct = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const updateProduct = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const result = await ProductAdminService.update({
+    productId: id,
+    data: req.body,
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Product updated successfully",
+    data: result,
+  });
+});
+
 const addAttributes = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
   const result = await ProductAdminService.addAttributes({
     payload: {
-      productId: id,
-      attributesWithValues: req.body,
+      productId: +id,
+      attributesWithValues: req.body.attributes,
     },
   });
 
@@ -33,11 +48,54 @@ const addAttributes = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAttributes = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const result = await ProductAdminService.getAttributes({ productId: id });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Product attributes retrieved successfully",
+    data: result,
+  });
+});
+
+const deleteAttribute = catchAsync(async (req: Request, res: Response) => {
+  const { id, attributeId } = req.params;
+  const result = await ProductAdminService.deleteAttribute({
+    productId: id,
+    attributeId: attributeId,
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Product attribute deleted successfully",
+    data: result,
+  });
+});
+
+const updateAttribute = catchAsync(async (req: Request, res: Response) => {
+  const { id, attributeId } = req.params;
+  const result = await ProductAdminService.updateAttribute({
+    productId: id,
+    attributeId: attributeId,
+    data: req.body,
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Product attribute updated successfully",
+    data: result,
+  });
+});
+
 const addVariations = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
   const result = await ProductAdminService.addVariations({
     payload: {
-      productId: id,
+      productId: +id,
       variations: req.body.variations,
     },
   });
@@ -73,10 +131,60 @@ const deleteProduct = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getVariations = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const result = await ProductAdminService.getVariations({ productId: id });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Product variation retrieved successfully",
+    data: result,
+  });
+});
+
+const deleteVariation = catchAsync(async (req: Request, res: Response) => {
+  const { id, variationId } = req.params;
+  const result = await ProductAdminService.deleteVariation({
+    productId: id,
+    variationId: variationId,
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Product variation deleted successfully",
+    data: result,
+  });
+});
+
+const updateVariation = catchAsync(async (req: Request, res: Response) => {
+  const { id, variationId } = req.params;
+  const result = await ProductAdminService.updateVariation({
+    productId: id,
+    variationId: variationId,
+    data: req.body,
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Product variation updated successfully",
+    data: result,
+  });
+});
+
 export const ProductAdminController = {
   create: createProduct,
+  update: updateProduct,
   getAll: getProducts,
   delete: deleteProduct,
   addAttributes,
+  getAttributes,
+  deleteAttribute,
+  updateAttribute,
   addVariations,
+  getVariations,
+  deleteVariation,
+  updateVariation,
 };

@@ -49,7 +49,6 @@ const SignUp = async (
 
   await prisma.user.create({
     data: {
-      id: uuidv4(),
       email: email,
       name: name,
       password: hashedPass,

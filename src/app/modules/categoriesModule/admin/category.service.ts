@@ -20,7 +20,6 @@ export const createCategory = async (data: any) => {
   try {
     const newCategory = await prisma.categories.create({
       data: {
-        id: uuidv4(),
         ...data,
       },
     });
@@ -37,14 +36,14 @@ export const deleteCategory = async (id: string) => {
   try {
     await prisma.categories
       .findFirst({
-        where: { id },
+        where: { id: +id },
       })
       .then(async (category) => {
         if (!category) {
           throw new AppError(httpStatus.NOT_FOUND, "Category not found");
         }
         await prisma.categories.delete({
-          where: { id },
+          where: { id: +id },
         });
       });
   } catch (error) {

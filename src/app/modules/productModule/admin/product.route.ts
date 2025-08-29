@@ -33,8 +33,42 @@ router.post(
   }),
   ProductAdminController.create
 );
+router.patch(
+  "/:id",
+  uploaderV2({
+    fieldName: "images",
+    type: "array",
+    maxCount: 4,
+    destination: "uploads/products",
+  }),
+  expressYupMiddleware({
+    schemaValidator: createProductSchema,
+    errorFormatter: customErrorFormatter,
+    expectedStatusCode: 422, // <-- This is the key change
+  }),
+  ProductAdminController.update
+);
 router.post("/:id/attributes", ProductAdminController.addAttributes);
+router.get("/:id/attributes", ProductAdminController.getAttributes);
+router.delete(
+  "/:id/attributes/:attributeId",
+  ProductAdminController.deleteAttribute
+);
+router.patch(
+  "/:id/attributes/:attributeId",
+  ProductAdminController.updateAttribute
+);
+
 router.post("/:id/variations", ProductAdminController.addVariations);
+router.get("/:id/variations", ProductAdminController.getVariations);
+router.delete(
+  "/:id/variations/:variationId",
+  ProductAdminController.deleteVariation
+);
+router.patch(
+  "/:id/variations/:variationId",
+  ProductAdminController.updateVariation
+);
 
 router.get("/", ProductAdminController.getAll);
 router.delete("/:id", ProductAdminController.delete);
