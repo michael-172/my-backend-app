@@ -7,7 +7,7 @@ import { CartService } from "./cart.service";
 
 const getMyCart = catchAsync(
   async (req: Request & { user?: { id: string } }, res: Response) => {
-    const result = await CartService.getMyCart({ userId: req.user!.id });
+    const result = await CartService.getMyCart({ userId: +req.user!.id });
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -21,10 +21,10 @@ const getMyCart = catchAsync(
 const addToCart = catchAsync(
   async (req: Request & { user?: { id: string } }, res: Response) => {
     const result = await CartService.addToCart({
-      userId: req.user!.id,
-      productId: req.body.productId,
-      variantId: req.body.variantId,
-      quantity: req.body.quantity,
+      userId: +req.user!.id,
+      productId: +req.body.productId,
+      productVariationId: +req.body.productVariationId,
+      quantity: +req.body.quantity,
     });
 
     sendResponse(res, {
@@ -39,8 +39,8 @@ const addToCart = catchAsync(
 const increaseCartItemQuantity = catchAsync(
   async (req: Request & { user?: { id: string } }, res: Response) => {
     const result = await CartService.increase({
-      userId: req.user!.id,
-      cartItemId: req.body.cartItemId,
+      userId: +req.user!.id,
+      cartItemId: +req.body.cartItemId,
     });
 
     sendResponse(res, {
@@ -55,8 +55,8 @@ const increaseCartItemQuantity = catchAsync(
 const decreaseCartItemQuantity = catchAsync(
   async (req: Request & { user?: { id: string } }, res: Response) => {
     const result = await CartService.decrease({
-      userId: req.user!.id,
-      cartItemId: req.body.cartItemId,
+      userId: +req.user!.id,
+      cartItemId: +req.body.cartItemId,
     });
 
     sendResponse(res, {
@@ -71,8 +71,8 @@ const decreaseCartItemQuantity = catchAsync(
 const removeFromCart = catchAsync(
   async (req: Request & { user?: { id: string } }, res: Response) => {
     const result = await CartService.removeFromCart({
-      userId: req.user!.id,
-      cartItemId: req.body.cartItemId,
+      userId: +req.user!.id,
+      cartItemId: +req.body.cartItemId,
     });
 
     sendResponse(res, {

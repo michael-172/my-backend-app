@@ -1,13 +1,11 @@
 import AppError from "../../../errors/AppError";
 import httpStatus from "http-status";
-import bcrypt from "bcrypt";
 import prisma from "../../../utils/prisma";
-import { v4 as uuidv4 } from "uuid";
 
-export const getMyCart = async ({ userId }: { userId: string }) => {
+export const getMyCart = async ({ userId }: { userId: number }) => {
   try {
     const cart = await prisma.cart.findFirst({
-      where: { userId: userId },
+      where: { userId },
       select: {
         id: true,
         createdAt: true,
@@ -17,7 +15,7 @@ export const getMyCart = async ({ userId }: { userId: string }) => {
             id: true,
             quantity: true,
             product: true,
-            variant: true,
+            productVariation: true,
           },
         },
       },
@@ -34,35 +32,37 @@ export const getMyCart = async ({ userId }: { userId: string }) => {
 export const addToCart = async ({
   userId,
   productId,
-  variantId,
+  productVariationId,
   quantity,
 }: {
-  userId: string;
-  productId: string;
-  variantId: string;
+  userId: number;
+  productId: number;
+  productVariationId: number;
   quantity: number;
 }) => {
   try {
     // Find the user's cart or create one if it doesn't exist
     const userCart = await prisma.cart.upsert({
-      where: { userId: userId },
+      where: { userId },
       update: {},
-      create: { userId: userId },
+      create: { userId },
     });
 
-    // Check if the product variant exists and has enough stock
-    const productVariant = await prisma.variant.findUnique({
-      where: { id: variantId, productId: productId },
+    console.log(productVariationId, "productVariationId");
+
+    // Check if the product variation exists and has enough stock
+    const productVariation = await prisma.productVariation.findUnique({
+      where: { id: Number(productVariationId) },
     });
 
-    if (!productVariant) {
-      throw new AppError(httpStatus.NOT_FOUND, "Product variant not found");
+    if (!productVariation) {
+      throw new AppError(httpStatus.NOT_FOUND, "Product variation not found");
     }
 
-    if (productVariant.stock < quantity) {
+    if (productVariation.stock < quantity) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        `Not enough stock. Only ${productVariant.stock} available.`
+        `Not enough stock. Only ${productVariation.stock} available.`
       );
     }
 
@@ -70,8 +70,8 @@ export const addToCart = async ({
     const existingCartItem = await prisma.cartItem.findFirst({
       where: {
         cartId: userCart.id,
-        productId: productId,
-        variantId: variantId,
+        productId,
+        productVariationId,
       },
     });
 
@@ -89,9 +89,9 @@ export const addToCart = async ({
       const newCartItem = await prisma.cartItem.create({
         data: {
           cartId: userCart.id,
-          productId: productId,
-          variantId: variantId,
-          quantity: quantity,
+          productId,
+          productVariationId,
+          quantity,
         },
       });
       return newCartItem;
@@ -108,15 +108,15 @@ export const removeItemFromCart = async ({
   userId,
   cartItemId,
 }: {
-  userId: string;
-  cartItemId: string;
+  userId: number;
+  cartItemId: number;
 }) => {
   try {
     // Find the user's cart item
     const cartItem = await prisma.cartItem.findFirst({
       where: {
         id: cartItemId,
-        Cart: { userId: userId },
+        Cart: { userId },
       },
     });
 
@@ -160,15 +160,15 @@ export const increaseCartItemQuantity = async ({
   userId,
   cartItemId,
 }: {
-  userId: string;
-  cartItemId: string;
+  userId: number;
+  cartItemId: number;
 }) => {
   try {
     // Find the user's cart item
     const cartItem = await prisma.cartItem.findFirst({
       where: {
         id: cartItemId,
-        Cart: { userId: userId },
+        Cart: { userId },
       },
     });
 
@@ -197,15 +197,15 @@ const decreaseCartItemQuantity = async ({
   userId,
   cartItemId,
 }: {
-  userId: string;
-  cartItemId: string;
+  userId: number;
+  cartItemId: number;
 }) => {
   try {
     // Find the user's cart item
     const cartItem = await prisma.cartItem.findFirst({
       where: {
         id: cartItemId,
-        Cart: { userId: userId },
+        Cart: { userId },
       },
     });
 

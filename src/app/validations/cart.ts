@@ -4,8 +4,8 @@ const addCartItemSchema = {
   schema: {
     body: {
       yupSchema: yup.object().shape({
-        productId: yup.string().uuid().required(),
-        variantId: yup.string().uuid().required(),
+        productId: yup.string().required(),
+        productVariationId: yup.string().required(),
         quantity: yup.number().min(1).required(),
       }),
     },
@@ -16,7 +16,7 @@ const cartItemSchema = {
   schema: {
     body: {
       yupSchema: yup.object().shape({
-        cartItemId: yup.string().uuid().required(),
+        cartItemId: yup.string().required(),
       }),
     },
   },
