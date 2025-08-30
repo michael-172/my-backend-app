@@ -42,30 +42,35 @@ export const getProductDetailsService = async ({ id }: { id: string }) => {
   const mappedProduct = {
     id: product.id,
     name: product.name,
-    price: product.price,
-    priceAfterDiscount: product.priceAfterDiscount,
+    description: product.description,
+    price: +product.price,
+    priceAfterDiscount: product.priceAfterDiscount
+      ? +product.priceAfterDiscount
+      : 0,
     sku: product.sku,
     images: product.images,
-    status: product.status,
-    rating_average,
+    status: product.status as ProductStatus,
+    average_ratings: rating_average,
     attributes: product.attributes.map((attr) => ({
       id: attr.id,
       name: attr.name,
       values: attr.values.map((val) => ({
-        // id: val.id,
+        id: val.id,
         value: val.value,
       })),
-    })),
+    })) as any,
     variations: product.variations.map((v) => ({
       id: v.id,
       price: v.price,
+      stock: v.stock,
+      sku: v.sku,
       attributes: v.attributes.map((a) => ({
         id: a.id,
         attributeValueId: a.attributeValue.id,
         name: a.attributeValue.productAttribute.name,
         value: a.attributeValue.value,
       })),
-    })),
+    })) as any,
   };
 
   return {

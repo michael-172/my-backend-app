@@ -32,17 +32,6 @@ const prisma = getPrismaClient().$extends({
         },
       },
     },
-    variant: {
-      image: {
-        needs: { image: true },
-        compute(variant) {
-          if (variant.image) {
-            return `${BASE_URL.BASE_URL}/${variant.image}`;
-          }
-          return variant.image;
-        },
-      },
-    },
   },
 });
 

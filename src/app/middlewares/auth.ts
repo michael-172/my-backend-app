@@ -55,13 +55,15 @@ export const authMiddleware = async (
   const decodedToken = jwt.verify(token, secret);
 
   const { id } = decodedToken as { id: string };
-
+  console.log(id, "decodedToken");
   // Check if user exists
   const user = await prisma.user.findUnique({
     where: {
-      id: id,
+      id: +id,
     },
   });
+
+  console.log(user, "user");
   if (!user) {
     return next(
       new AppError(https.UNAUTHORIZED, "User not found, Please Login again")

@@ -388,7 +388,7 @@ export const getProductDetailsService = async ({ id }: { id: string }) => {
   }
 
   // const averageRating = product..reduce((acc, review) => acc + review.rating, 0) / product.reviews.length || 0;
-
+  console.log(product, "product");
   return {
     status: "success",
     data: product,
